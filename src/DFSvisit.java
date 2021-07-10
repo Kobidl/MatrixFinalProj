@@ -5,7 +5,7 @@ public class DFSvisit<T> {
      * TLS - Thread-Local Storage
      */
     Stack<Node<T>> workingStack; // stack for discovered nodes
-    Set<Node<T>> finished;       // set for finished nodes
+    Set<Node<T>> finished;       // set for visited nodes
 
     public DFSvisit(){
         workingStack = new Stack<>();
@@ -19,7 +19,7 @@ While stack is not empty: // there are nodes to handle V
     insert to finish set V
     invoke getReachableNodes on the removed node V
     For each reachable node:
-        if the current reachable node is not in finished set && working stack
+        if the current reachable node is not in visited set && working stack
         push to stack
  */
     public Collection<T> traverse(Traversable<T> partOfGraph,boolean includeDiagonal){

@@ -30,6 +30,11 @@ public class TraversableMatrix implements Traversable<Index> {
     }
 
     @Override
+    public int getValue(Index index) {
+        return this.matrix.getValue(index);
+    }
+
+    @Override
     public Collection<Node<Index>> getReachableNodes(Node<Index> someNode,boolean includeDiagonal) {
         List<Node<Index>> reachableIndex = new ArrayList<>();
         for (Index index : this.matrix.getNeighbors(someNode.getData(),includeDiagonal)) {

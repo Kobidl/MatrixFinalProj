@@ -107,7 +107,7 @@ public class TcpServer {
                         try {
                             requestHandler.handle(serverToSpecificClient.getInputStream(),
                                     serverToSpecificClient.getOutputStream());
-                            // finished handling client. now close all streams
+                            // visited handling client. now close all streams
                             serverToSpecificClient.getInputStream().close();
                             serverToSpecificClient.getOutputStream().close();
                             serverToSpecificClient.close();

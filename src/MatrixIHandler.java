@@ -1,8 +1,5 @@
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MatrixIHandler implements IHandler {
@@ -29,6 +26,7 @@ public class MatrixIHandler implements IHandler {
         this.resetParams(); // in order to use same handler between tasks/clients
 
         boolean doWork = true;
+        TraversableMatrix traversableMatrix;
         while(doWork){
             /*
              Use switch-case in order to get commands from client
@@ -52,7 +50,7 @@ public class MatrixIHandler implements IHandler {
 
                 case "getAllLinkedPoints":
                     List<HashSet<Index>> linkedPointsLists = new ArrayList<>();
-                    TraversableMatrix traversableMatrix = new TraversableMatrix(this.matrix);
+                    traversableMatrix = new TraversableMatrix(this.matrix);
                     //get all active points
                     List<Index> actives = this.matrix.getAllActivePoints();
                     //run traverse dfs on all active points
@@ -63,7 +61,6 @@ public class MatrixIHandler implements IHandler {
                         List<Index> points = threadLocalDfsVisit.traverse(traversableMatrix,true);
                         linkedPointsLists.add(new HashSet<>(points));
                         //Remove all linked points that found
-                        actives.remove(0);
                         actives = actives.stream().filter(index -> !points.contains(index)).collect(Collectors.toList());
                     }
 
@@ -72,6 +69,17 @@ public class MatrixIHandler implements IHandler {
 
                     //return to client
                     objectOutputStream.writeObject(linkedPointsLists);
+                    break;
+
+                case "getShortestPath":
+                    traversableMatrix = new TraversableMatrix(this.matrix);
+                    Index source  = (Index)objectInputStream.readObject();
+                    Index dest = (Index)objectInputStream.readObject();
+                    BFSvisit<Index> bfsVisit = new BFSvisit<>();
+                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix,new Node(source),new Node(dest));
+
+                    //return to client
+                    objectOutputStream.writeObject(path);
                     break;
 
 //                case "neighbors":{
