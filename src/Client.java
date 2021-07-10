@@ -14,8 +14,8 @@ public class Client {
 
         // sending #1 matrix
         int[][] source = {
-                {1, 1, 1, 0},
                 {1, 1, 0, 0},
+                {1, 1, 1, 0},
                 {0, 0, 0, 0},
                 {0, 0, 0, 0}
         };
@@ -38,7 +38,7 @@ public class Client {
 
         toServer.writeObject("getShortestPath");
         toServer.writeObject(new Index(0, 0));
-        toServer.writeObject(new Index(1, 1));
+        toServer.writeObject(new Index(1, 2));
 //        List<Index> reachables =
 //                new ArrayList<Index>((List<Index>) fromServer.readObject());
         Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();

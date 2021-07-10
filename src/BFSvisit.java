@@ -6,13 +6,11 @@ public class BFSvisit<T> {
 
     Stack<Node<T>> workingStack; // stack for discovered nodes
     Queue<Pair<Node<T>,Integer>> workingQueue;
-    Set<Node<T>> visited;       // set for visited nodes
     Collection<Collection<T>> path;
     int shortestPath;
 
     public BFSvisit(){
         workingStack = new Stack<>();
-        visited = new HashSet<>();
         workingQueue = new LinkedList<>();
         path = new ArrayList<>();
         shortestPath = Integer.MAX_VALUE;
@@ -23,9 +21,6 @@ public class BFSvisit<T> {
         if(partOfGraph.getValue(source.getData()) == 0 || partOfGraph.getValue(dest.getData()) == 0){
             return path;
         }
-
-        // Mark the source cell as visited
-        visited.add(source);
 
         // Create a queue for BFS
         //workingQueue = new LinkedList<>();
@@ -68,10 +63,10 @@ public class BFSvisit<T> {
                     path.add(temp);
                     break;
                 }
-                else if (!visited.contains(reachable) && (curr.getValue() < shortestPath))
+                else if (!reachable.equals(pt.getParent()) && (curr.getValue() < shortestPath))
                 {
                     // mark cell as visited and enqueue it
-                    visited.add(reachable);
+                    //visited.add(reachable);
                     workingQueue.add(new Pair<>(reachable,curr.getValue() + 1));
                 }
             }
