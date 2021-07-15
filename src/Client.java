@@ -14,37 +14,50 @@ public class Client {
 
         // sending #1 matrix
         int[][] source = {
-                {1, 1, 0, 0},
-                {1, 1, 1, 0},
-                {0, 0, 0, 0},
-                {0, 0, 0, 0}
+                {1, 0, 0},
+                {1, 0, 1},
+                {0, 1, 1}
         };
         //send "matrix" command then write 2d array to socket
         toServer.writeObject("matrix");
         toServer.writeObject(source);
 
-//        toServer.writeObject("getAllLinkedPoints");
-//        List<HashSet<Index>> linkedPoints =
-//                new ArrayList<HashSet<Index>>((List<HashSet<Index>>) fromServer.readObject());
-//
-//        //todo: change prints
-//        for (HashSet<Index> set:linkedPoints){
-//            for (Index index : set){
-//                System.out.print(index.toString());
-//            }
-//            System.out.print(",");
+        //Task 1
+
+        toServer.writeObject("getAllLinkedPoints");
+        List<HashSet<Index>> linkedPoints =
+                new ArrayList<HashSet<Index>>((List<HashSet<Index>>) fromServer.readObject());
+
+        //todo: change prints
+        for (HashSet<Index> set:linkedPoints){
+            for (Index index : set){
+                System.out.print(index.toString());
+            }
+            System.out.println(",");
+        }
+
+
+
+
+        //Task 4
+//        toServer.writeObject("getLightestPath");
+//        toServer.writeObject(new Index(1, 0));
+//        toServer.writeObject(new Index(1, 2));
+//        Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();
+//        for(List<Index> path : paths){
+//            System.out.println("from client - Shortest path are:  " + path);
 //        }
 
-
-        toServer.writeObject("getShortestPath");
-        toServer.writeObject(new Index(0, 0));
-        toServer.writeObject(new Index(1, 2));
-//        List<Index> reachables =
-//                new ArrayList<Index>((List<Index>) fromServer.readObject());
-        Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();
-        for(List<Index> path : paths){
-            System.out.println("from client - Shortest path are:  " + path);
-        }
+        //Task 2
+//        toServer.writeObject("getShortestPath");
+//        toServer.writeObject(new Index(0, 0));
+//        toServer.writeObject(new Index(1, 2));
+////        List<Index> reachables =
+////                new ArrayList<Index>((List<Index>) fromServer.readObject());
+//        Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();
+//        for(List<Index> path : paths){
+//            System.out.println("from client - Shortest path are:  " + path);
+//        }
 
 
         // get neighboring indices as list

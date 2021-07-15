@@ -74,20 +74,10 @@ public class BFSvisit<T> {
 
         return path;
     }
-   /*
-   [1,0,1,1]
-   [1,1,0,1]
-
-   Reachables
-
-   WorkingStack
-
-   FinishedSet
-   (0,0)
-   (1,0)
-   (1,1)
-    */
-
-
-
 }
+
+
+/*
+   100 50 200
+   -50 -20 50
+ */

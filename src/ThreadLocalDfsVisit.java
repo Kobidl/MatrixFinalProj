@@ -6,6 +6,9 @@ public class ThreadLocalDfsVisit<T> {
     protected final ThreadLocal<Set<Node<T>>> setThreadLocal =
             ThreadLocal.withInitial(()->new HashSet<>());
 
+    List<Node<T>> visited = Collections.synchronizedList(new ArrayList<>());
+
+
     protected void threadLocalPush(Node<T> node){
         stackThreadLocal.get().push(node);
     }
@@ -13,6 +16,7 @@ public class ThreadLocalDfsVisit<T> {
     protected Node<T> threadLocalPop(){
         return stackThreadLocal.get().pop();
     }
+
 
     public List<T> traverse(Traversable<T> partOfGraph,boolean includeDiagonal){
         threadLocalPush(partOfGraph.getOrigin());
