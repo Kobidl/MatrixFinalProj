@@ -6,8 +6,6 @@ public class ThreadLocalDfsVisit<T> {
     protected final ThreadLocal<Set<Node<T>>> setThreadLocal =
             ThreadLocal.withInitial(()->new HashSet<>());
 
-    List<Node<T>> visited = Collections.synchronizedList(new ArrayList<>());
-
 
     protected void threadLocalPush(Node<T> node){
         stackThreadLocal.get().push(node);

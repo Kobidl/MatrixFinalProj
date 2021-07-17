@@ -14,16 +14,16 @@ public class Client {
 
         // sending #1 matrix
         int[][] source = {
-                {1, 0, 0},
-                {1, 0, 1},
-                {0, 1, 1}
+                {1, 0, 0, 0},
+                {1, 0, 0, 1},
+                {0, 0, 0, 1},
+                {1, 1, 0, 1} // 3,0 3,1
         };
         //send "matrix" command then write 2d array to socket
         toServer.writeObject("matrix");
         toServer.writeObject(source);
 
         //Task 1
-
         toServer.writeObject("getAllLinkedPoints");
         List<HashSet<Index>> linkedPoints =
                 new ArrayList<HashSet<Index>>((List<HashSet<Index>>) fromServer.readObject());
@@ -37,6 +37,10 @@ public class Client {
         }
 
 
+        //Task 3
+        toServer.writeObject("getNumOfValidSubmarines");
+        int namOfValid = (int) fromServer.readObject();
+        System.out.println("Num of valid submarines: " + namOfValid);
 
 
         //Task 4

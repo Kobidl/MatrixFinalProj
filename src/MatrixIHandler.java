@@ -19,7 +19,7 @@ public class MatrixIHandler implements IHandler {
 
     @Override
     public void handle(InputStream fromClient, OutputStream toClient)
-            throws IOException, ClassNotFoundException {
+            throws Exception {
 
         // In order to read either objects or primitive types we can use ObjectInputStream
         ObjectInputStream objectInputStream = new ObjectInputStream(fromClient);
@@ -49,17 +49,21 @@ public class MatrixIHandler implements IHandler {
                     break;
                 }
 
-                case "getAllLinkedPoints":
+                case "getAllLinkedPoints"://Task 1
                     try {
-                        getAllLinkedPoints(objectInputStream,objectOutputStream);
+                        List<HashSet<Index>>finalList = getAllLinkedPoints();
+                        objectOutputStream.writeObject(finalList);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     break;
 
-                case "getShortestPath":
+                case "getShortestPath": //Task 2
                     TraversableMatrix traversableMatrix;
                     traversableMatrix = new TraversableMatrix(this.matrix);
+                    if(this.matrix.getPrimitiveMatrix().length >50 ||  this.matrix.getPrimitiveMatrix()[0].length > 50){
+                        throw new Exception("Invalid matrix");
+                    }
                     Index source  = (Index)objectInputStream.readObject();
                     Index dest = (Index)objectInputStream.readObject();
                     BFSvisit<Index> bfsVisit = new BFSvisit<>();
@@ -69,8 +73,16 @@ public class MatrixIHandler implements IHandler {
                     //return to client
                     objectOutputStream.writeObject(path);
                     break;
-
-                case "getLightestPath":
+                case "getNumOfValidSubmarines"://Task 3
+                    try {
+                        List<HashSet<Index>>finalList = getAllLinkedPoints();
+                        int num = getValidateSubmarines(finalList);
+                        objectOutputStream.writeObject(num);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case "getLightestPath"://Task 4
                     TraversableMatrix traversableMatrix2;
                     traversableMatrix2 = new TraversableMatrix(this.matrix);
                     Index source2  = (Index)objectInputStream.readObject();
@@ -82,31 +94,6 @@ public class MatrixIHandler implements IHandler {
                     //return to client
                     objectOutputStream.writeObject(path2);
                     break;
-//                case "neighbors":{
-//                    Index findNeighborsIndex = (Index)objectInputStream.readObject();
-//                    List<Index> neighbors = new ArrayList<>();
-//                    if(this.matrix!=null){
-//                        neighbors.addAll(this.matrix.getNeighbors(findNeighborsIndex,false));
-//                        // print result in server
-//                        System.out.println("neighbors of " + findNeighborsIndex + ": " + neighbors);
-//                        // send to socket's OutputStream
-//                        objectOutputStream.writeObject(neighbors);
-//                    }
-//                    break;
-//                }
-
-//                case "reachables":{
-//                    Index findNeighborsIndex = (Index)objectInputStream.readObject();
-//                    List<Index> reachables = new ArrayList<>();
-//                    if(this.matrix!=null){
-//                        reachables.addAll(this.matrix.getReachables(findNeighborsIndex));
-//                        // print result in server
-//                        System.out.println("reachables of " + findNeighborsIndex + ": " + reachables);
-//                        // send to socket's OutputStream
-//                        objectOutputStream.writeObject(reachables);
-//                    }
-//                    break;
-//                }
 
                 case "start index":{
                     this.start = (Index)objectInputStream.readObject();
@@ -126,7 +113,55 @@ public class MatrixIHandler implements IHandler {
         }
     }
 
-    private void getAllLinkedPoints(ObjectInputStream objectInputStream, ObjectOutputStream objectOutputStream) throws IOException, InterruptedException {
+    private int getValidateSubmarines(List<HashSet<Index>> finalList) {
+        int counter = 0;
+        List<Future<Boolean>> futures = new ArrayList<>();
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(3, 5, 10,
+                TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+
+        while(!finalList.isEmpty()){
+            HashSet<Index> item = finalList.remove(0);
+
+            Callable<Boolean> taskHandle = () -> {
+                if(item != null && item.size() > 1) {
+                    int minRow = Integer.MAX_VALUE;
+                    int minCol = Integer.MAX_VALUE;
+                    int maxRow = 0;
+                    int maxCol = 0;
+                    for (Index index : item) {
+                        if(index.row < minRow){
+                            minRow = index.row;
+                        }
+                        if(index.column < minCol){
+                            minCol = index.column;
+                        }
+                        if (index.row > maxRow) {
+                            maxRow = index.row;
+                        }
+                        if (index.column > maxCol) {
+                            maxCol = index.column;
+                        }
+                    }
+                    return (maxRow - minRow + 1) * (maxCol - minCol + 1) == item.size();
+                }
+                return false;
+            };
+            futures.add(threadPool.submit(taskHandle));
+        }
+
+        for (Future<Boolean> future : futures) {
+            try {
+                if(future.get()){
+                    counter++;
+                }
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        return counter;
+    }
+
+    private List<HashSet<Index>> getAllLinkedPoints() throws IOException, InterruptedException {
         //get all active points
        List<Index> actives = this.matrix.getAllActivePoints();
        List<Index> found = Collections.synchronizedList(new ArrayList<>());
@@ -137,7 +172,6 @@ public class MatrixIHandler implements IHandler {
         ThreadPoolExecutor threadPool = new ThreadPoolExecutor(3, 5, 10,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
-        ThreadLocalDfsVisit threadLocalDfsVisit = new ThreadLocalDfsVisit<Index>();
 
 
         while(!actives.isEmpty()){
@@ -145,6 +179,7 @@ public class MatrixIHandler implements IHandler {
 
             Callable<HashSet<Index>> taskHandle = () -> {
                 if(active != null) {
+                    ThreadLocalDfsVisit threadLocalDfsVisit = new ThreadLocalDfsVisit<Index>();
                     TraversableMatrix traversableMatrix = new TraversableMatrix(this.matrix);
                     traversableMatrix.setStartIndex(active);
 
@@ -190,9 +225,7 @@ public class MatrixIHandler implements IHandler {
             }
         }
         //Sort by size
-        finalList = finalList.stream().sorted(Comparator.comparingInt(HashSet::size)).collect(Collectors.toList());
+        return finalList.stream().sorted(Comparator.comparingInt(HashSet::size)).collect(Collectors.toList());
 
-        //return to client
-        objectOutputStream.writeObject(finalList);
     }
 }
