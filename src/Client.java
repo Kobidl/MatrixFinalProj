@@ -24,33 +24,46 @@ public class Client {
         toServer.writeObject(source);
 
         //Task 1
-        toServer.writeObject("getAllLinkedPoints");
-        List<HashSet<Index>> linkedPoints =
-                new ArrayList<HashSet<Index>>((List<HashSet<Index>>) fromServer.readObject());
-
-        //todo: change prints
-        for (HashSet<Index> set:linkedPoints){
-            for (Index index : set){
-                System.out.print(index.toString());
-            }
-            System.out.println(",");
-        }
+//        toServer.writeObject("getAllLinkedPoints");
+//        List<HashSet<Index>> linkedPoints =
+//                new ArrayList<HashSet<Index>>((List<HashSet<Index>>) fromServer.readObject());
+//
+//        //todo: change prints
+//        for (HashSet<Index> set:linkedPoints){
+//            for (Index index : set){
+//                System.out.print(index.toString());
+//            }
+//            System.out.println(",");
+//        }
 
 
         //Task 3
-        toServer.writeObject("getNumOfValidSubmarines");
-        int namOfValid = (int) fromServer.readObject();
-        System.out.println("Num of valid submarines: " + namOfValid);
+//        toServer.writeObject("getNumOfValidSubmarines");
+//        int namOfValid = (int) fromServer.readObject();
+//        System.out.println("Num of valid submarines: " + namOfValid);
 
+//        Task 4
+        int[][] source4 = {
+                {100 , 100 ,100},
+                {300, 900, 500},
+                {300, -900, 500},
+                {300, 900, 500},
+                {300, 900, 500},
+                {300, 900, 500},
+                {300, 900, 500},
+                {300, 900, 500},
+                {300, 900, 500}
+        };
+        toServer.writeObject("matrix");
+        toServer.writeObject(source4);
 
-        //Task 4
-//        toServer.writeObject("getLightestPath");
-//        toServer.writeObject(new Index(1, 0));
-//        toServer.writeObject(new Index(1, 2));
-//        Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();
-//        for(List<Index> path : paths){
-//            System.out.println("from client - Shortest path are:  " + path);
-//        }
+        toServer.writeObject("getLightestPath");
+        toServer.writeObject(new Index(1, 0));
+        toServer.writeObject(new Index(1, 2));
+        Collection<List<Index>> paths = (Collection<List<Index>>) fromServer.readObject();
+        for(List<Index> path : paths){
+            System.out.println("from client - Shortest path are:  " + path);
+        }
 
         //Task 2
 //        toServer.writeObject("getShortestPath");

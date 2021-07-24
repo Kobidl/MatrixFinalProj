@@ -115,6 +115,8 @@ public class TcpServer {
                             System.err.println(ioException.getMessage());
                         } catch (ClassNotFoundException ce) {
                             System.err.println(ce.getMessage());
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     };
                     threadPool.execute(clientHandling);

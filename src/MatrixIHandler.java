@@ -1,3 +1,5 @@
+import javafx.util.Pair;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -87,10 +89,10 @@ public class MatrixIHandler implements IHandler {
                     traversableMatrix2 = new TraversableMatrix(this.matrix);
                     Index source2  = (Index)objectInputStream.readObject();
                     Index dest2 = (Index)objectInputStream.readObject();
-                    BFSvisit2<Index> bfsVisit2 = new BFSvisit2<>();
+                    BFSvisit3<Index> bfsVisit2 = new BFSvisit3<>();
 
-                    Collection<Collection<Index>> path2 = bfsVisit2.traverse(traversableMatrix2,new Node(source2),new Node(dest2));
-
+                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getPaths(traversableMatrix2,new ArrayList<>(),0,new Node(source2),new Node(dest2));
+                    Collection<Collection<Index>> path2 = pairs.stream().map(Pair::getKey).collect(Collectors.toList());
                     //return to client
                     objectOutputStream.writeObject(path2);
                     break;
