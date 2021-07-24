@@ -14,9 +14,9 @@ public class Client {
 
         // sending #1 matrix
         int[][] source = {
-                {1, 0, 0, 0},
-                {1, 0, 0, 1},
-                {0, 0, 0, 1},
+                {1, 1, 1, 1},
+                {1, 0, 1, 1},
+                {1, 1, 1, 1},
                 {1, 1, 0, 1}
         };
         //send "matrix" command then write 2d array to socket
@@ -36,13 +36,13 @@ public class Client {
 
         //Task 2
         toServer.writeObject("getShortestPath");
-        toServer.writeObject(new Index(0, 0));
         toServer.writeObject(new Index(1, 0));
+        toServer.writeObject(new Index(1, 2));
         Collection<List<Index>> shortestPaths = (Collection<List<Index>>) fromServer.readObject();
         if(shortestPaths.size() == 0){
-            System.out.println("There are no available path between 2 indexes");
+            System.out.println("There are no available allPaths between 2 indexes");
         }else {
-            System.out.println("from client - Shortest path are:  ");
+            System.out.println("from client - Shortest allPaths are:  ");
             shortestPaths.forEach(System.out::println);
         }
 
@@ -56,7 +56,7 @@ public class Client {
         int[][] source4 = {
                 {100 , 100 ,100},
                 {300, 900, 500},
-                {300, -900, 500},
+                {300, 900, 500},
         };
         toServer.writeObject("matrix");
         toServer.writeObject(source4);
@@ -66,9 +66,9 @@ public class Client {
         toServer.writeObject(new Index(1, 2));
         Collection<List<Index>> lightestPaths = (Collection<List<Index>>) fromServer.readObject();
         if(lightestPaths.size() == 0) {
-            System.out.println("There are no available path between 2 indexes");
+            System.out.println("There are no available allPaths between 2 indexes");
         }else{
-            System.out.println("from client - Lightest path are: ");
+            System.out.println("from client - Lightest allPaths are: ");
             lightestPaths.forEach(System.out::println);
         }
 

@@ -6,78 +6,80 @@ public class BFSvisit<T> {
 
     Stack<Node<T>> workingStack; // stack for discovered nodes
     Queue<Pair<Node<T>,Integer>> workingQueue;
-    Collection<Collection<T>> path;
-    int shortestPath;
+    Collection<Collection<T>> allPaths;
+    int shortestSteps;
 
     public BFSvisit(){
         workingStack = new Stack<>();
         workingQueue = new LinkedList<>();
-        path = new ArrayList<>();
-        shortestPath = Integer.MAX_VALUE;
+        allPaths = new ArrayList<>();
+        shortestSteps = Integer.MAX_VALUE;
     }
 
-    public Collection<Collection<T>> traverse(Traversable<T> partOfGraph,Node<T> source,Node<T> dest){
+    /**
+     * Get all shortest allPaths from source to index
+     * @param partOfGraph
+     * @param dest
+     * @return Collection of Collections of T
+     */
+    public Collection<Collection<T>> traverse(Traversable<T> partOfGraph,Node<T> dest){
+        //get source from Traversable origin
+        Node<T> source = partOfGraph.getOrigin();
+        source.setParent(null);
 
         if(partOfGraph.getValue(source.getData()) == 0 || partOfGraph.getValue(dest.getData()) == 0){
-            return path;
+            return allPaths;
         }
 
         // Create a queue for BFS
-        //workingQueue = new LinkedList<>();
-
         // Distance of source cell is 0
         workingQueue.add(new Pair<>(source,0));
+
         // Do a BFS starting from source cell
-
-        source.setParent(null);
-
         while (!workingQueue.isEmpty())
         {
-            Pair<Node<T>,Integer> curr = workingQueue.peek();
-            Node<T> pt = curr.getKey();
+            //Remove first item in queue and save as current
+            Pair<Node<T>,Integer> current = workingQueue.remove();
+            Node<T> pt = current.getKey();
 
-            // Otherwise dequeue the front cell
-            // in the queue and enqueue
-            // its adjacent cells
-            workingQueue.remove();
-
+            //Finding reachable nodes from current node
             Collection<Node<T>> reachableNodes = partOfGraph.getReachableNodes(pt,false);
 
             for (Node<T> reachable : reachableNodes)
             {
                 // If we have reached the destination cell,
-                // We found the shortest path
-
+                // We found the shortest allPaths
                 if (reachable.getData().equals(dest.getData())) {
-                    List<T> temp = new ArrayList<>();
-                    temp.add(reachable.getData());
-                    shortestPath = curr.getValue();
-                    temp.add(pt.getData());
+                    //save the shortest allPaths length
+                    shortestSteps = current.getValue();
+
+                    //Setting up new allPaths
+                    //Adding dest + current
+                    List<T> newPath = new ArrayList<>();
+                    newPath.add(reachable.getData());
+                    newPath.add(pt.getData());
+                    //go back to all node parents and add to list
                     Node<T> parent = pt.getParent();
                     while (parent != null){
                         pt = parent;
-                        temp.add(pt.getData());
+                        newPath.add(pt.getData());
                         parent = pt.getParent();
                     }
-                    Collections.reverse(temp);
-                    path.add(temp);
+                    Collections.reverse(newPath);
+
+                    //save new allPaths in all paths
+                    allPaths.add(newPath);
                     break;
                 }
-                else if (!reachable.equals(pt.getParent()) && (curr.getValue() < shortestPath))
+                //Check if not visited (as parent) && current steps lower then shortest steps
+                else if (!reachable.equals(pt.getParent()) && (current.getValue() < shortestSteps))
                 {
-                    // mark cell as visited and enqueue it
-                    //visited.add(reachable);
-                    workingQueue.add(new Pair<>(reachable,curr.getValue() + 1));
+                    //Adding reachable to working queue and increase steps by 1
+                    workingQueue.add(new Pair<>(reachable,current.getValue() + 1));
                 }
             }
         }
 
-        return path;
+        return allPaths;
     }
 }
-
-
-/*
-   100 50 200
-   -50 -20 50
- */

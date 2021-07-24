@@ -63,19 +63,20 @@ public class MatrixIHandler implements IHandler {
                     TraversableMatrix traversableMatrix;
                     traversableMatrix = new TraversableMatrix(this.matrix);
                     if(this.matrix.getPrimitiveMatrix().length >50 ||  this.matrix.getPrimitiveMatrix()[0].length > 50){
-                        throw new Exception("Invalid matrix");
+                        throw new Exception("Invalid matrix - max should be 50 x 50");
                     }
                     Index source  = (Index)objectInputStream.readObject();
                     Index dest = (Index)objectInputStream.readObject();
                     BFSvisit<Index> bfsVisit = new BFSvisit<>();
-
-                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix,new Node(source),new Node(dest));
+                    traversableMatrix.setStartIndex(source);
+                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix,new Node(dest));
 
                     //return to client
                     objectOutputStream.writeObject(path);
                     break;
                 case "getNumOfValidSubmarines"://Task 3
                     try {
+                        //Get all linked points
                         List<HashSet<Index>>finalList = getAllLinkedPoints();
                         int num = getValidateSubmarines(finalList);
                         objectOutputStream.writeObject(num);
@@ -90,7 +91,7 @@ public class MatrixIHandler implements IHandler {
                     Index dest2 = (Index)objectInputStream.readObject();
                     BfsBf<Index> bfsVisit2 = new BfsBf<>();
 
-                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getPaths(traversableMatrix2,new ArrayList<>(),new Node(source2),new Node(dest2));
+                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix2,new ArrayList<>(),new Node(source2),new Node(dest2));
                     Collection<Collection<Index>> path2 = pairs.stream().map(p->reverse(p.getKey())).collect(Collectors.toList());
                     //return to client
                     objectOutputStream.writeObject(path2);
@@ -119,21 +120,34 @@ public class MatrixIHandler implements IHandler {
         return list;
     }
 
+    /**
+     * Get count of validate submarines
+     * @param finalList List of linked points
+     * @return number of validate submarines
+     */
     private int getValidateSubmarines(List<HashSet<Index>> finalList) {
         int counter = 0;
         List<Future<Boolean>> futures = new ArrayList<>();
         ThreadPoolExecutor threadPool = new ThreadPoolExecutor(3, 5, 10,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
+        //Go over all linked points
+        //Each one run as callable and calculate if validate
+        //Return in Future if linked points list are validate submarine
         while(!finalList.isEmpty()){
             HashSet<Index> item = finalList.remove(0);
 
             Callable<Boolean> taskHandle = () -> {
                 if(item != null && item.size() > 1) {
+                    //init min , max
                     int minRow = Integer.MAX_VALUE;
                     int minCol = Integer.MAX_VALUE;
                     int maxRow = 0;
                     int maxCol = 0;
+
+                    //Find min row , min col, max row , max col
+                    //Find rectangle expected items count based on borders using local min and max
+                    //check if equal to number of indexes in the list
                     for (Index index : item) {
                         if(index.row < minRow){
                             minRow = index.row;
@@ -167,34 +181,41 @@ public class MatrixIHandler implements IHandler {
         return counter;
     }
 
-    private List<HashSet<Index>> getAllLinkedPoints() throws IOException, InterruptedException {
+    /**
+     * Get all linked points
+     * @return List of HasSet of Index
+     * @throws InterruptedException
+     */
+    private List<HashSet<Index>> getAllLinkedPoints() throws InterruptedException {
         //get all active points
-       List<Index> actives = this.matrix.getAllActivePoints();
-       List<Index> found = Collections.synchronizedList(new ArrayList<>());
+        List<Index> actives = this.matrix.getAllActivePoints();
+        if (actives.size() == 0) { //if 0 return empty
+            return new ArrayList<>();
+        }
 
-       if(actives.size() == 0){
-           return new ArrayList<>();
-       }
+        //init sync list which will contains indexes that already found in linked
+        List<Index> found = Collections.synchronizedList(new ArrayList<>());
+        //init Future list tasks to wait for result from traverse
+        List<Future<HashSet<Index>>> futures = new ArrayList<>();
 
-       List<Future<HashSet<Index>>> futures = new ArrayList<>();
-
-       int maxThreads = actives.size() < 10 ? actives.size() :10;
         //run traverse dfs on all active points
-        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1,  maxThreads , 10,
+        int maxThreads = actives.size() < 10 ? actives.size() : 10;
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, maxThreads, 10,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
         ThreadLocalDfsVisit threadLocalDfsVisit = new ThreadLocalDfsVisit<Index>();
 
-        while(!actives.isEmpty()){
+        while (!actives.isEmpty()) {
             Index active = actives.remove(0);
 
             Callable<HashSet<Index>> taskHandle = () -> {
-                if(active != null) {
+                if (active != null) {
+                    // init part of graph based on active index
                     TraversableMatrix traversableMatrix = new TraversableMatrix(this.matrix);
                     traversableMatrix.setStartIndex(active);
 
-                    //Double check synchronized
-                    if(found.contains(active)) {
+                    //Double check synchronized if index already found
+                    if (found.contains(active)) {
                         return new HashSet<>();
                     }
                     synchronized (found) {
@@ -203,40 +224,46 @@ public class MatrixIHandler implements IHandler {
                         }
                     }
 
-                    //finding all the linked points and add to HashSet
+                    //Clear ThreadLocal data
                     threadLocalDfsVisit.reset();
-                    List<Index> points = threadLocalDfsVisit.traverse(traversableMatrix, true);
 
-                    //Double check synchronized
-                    if(found.contains(active)) {
+                    //Finding all the linked points from active and add to HashSet
+                    HashSet<Index> points = threadLocalDfsVisit.traverse(traversableMatrix, true);
+
+                    //Double check synchronized if index already found
+                    if (found.contains(active)) {
+                        //return empty since other thread returned same set
                         return new HashSet<>();
                     }
-                    synchronized (found){
-                        if(!found.contains(active)){
+                    synchronized (found) {
+                        if (!found.contains(active)) {
                             found.addAll(points);
-                            return new HashSet<>(points);
+                            return points;
                         }
                     }
                 }
                 return new HashSet<>();
             };
 
+            //submit task and add to futures
             futures.add(threadPool.submit(taskHandle));
         }
 
         List<HashSet<Index>> finalList = new ArrayList<>();
         for (Future<HashSet<Index>> future : futures) {
             try {
+                //get HashSet from future
                 HashSet<Index> points = future.get();
-                if (points.size() > 0) {
+                //if not empty add to final list
+                if (!points.isEmpty()) {
                     finalList.add(points);
                 }
             } catch (ExecutionException e) {
                 e.printStackTrace();
             }
         }
-        //Sort by size
-        return finalList.stream().sorted(Comparator.comparingInt(HashSet::size)).collect(Collectors.toList());
 
+        //Sort by size and return
+        return finalList.stream().sorted(Comparator.comparingInt(HashSet::size)).collect(Collectors.toList());
     }
 }

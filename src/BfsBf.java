@@ -2,7 +2,6 @@ import javafx.util.Pair;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
 public class BfsBf<T> {
 
@@ -14,12 +13,21 @@ public class BfsBf<T> {
     }
 
 
-    public Collection<Pair<List<T>,Integer>> getPaths(Traversable<T> partOfGraph, List<T> prev,Node<T> source, Node<T> dest ){
+    /**
+     * Get lightest paths from source to dest in graph
+     * @param partOfGraph
+     * @param blackList
+     * @param source
+     * @param dest
+     * @return
+     */
+    public Collection<Pair<List<T>,Integer>> getLightestPaths(Traversable<T> partOfGraph, List<T> blackList, Node<T> source, Node<T> dest ){
 
         Collection<Pair<List<T>,Integer>> paths = new ArrayList<>();
 
         Collection<Future<Collection<Pair<List<T>,Integer>>>> futures = new ArrayList<>();
 
+        //if reached to end return path with dest point
         if(source.equals(dest)){
             List<T> t = new ArrayList<>();
             t.add(source.getData());
@@ -27,23 +35,28 @@ public class BfsBf<T> {
             return paths;
         }
 
-        prev.add(source.getData());
+        //adding point to black list
+        blackList.add(source.getData());
         int value = partOfGraph.getValue(source.getData());
 
         ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, 4, 50,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
-        Collection<Node<T>> reachableNodes = partOfGraph.getNeighborNodes(source,false);
+        Collection<Node<T>> neighborNodes = partOfGraph.getNeighborNodes(source,false);
 
-        for (Node<T> reachable : reachableNodes) {
-            if(visited.get().containsKey(reachable.getData())){
-                paths.addAll(visited.get().get(reachable.getData()));
+        for (Node<T> neighbor : neighborNodes) {
+            //if visited add all known lightest paths
+            if(visited.get().containsKey(neighbor.getData())){
+                paths.addAll(visited.get().get(neighbor.getData()));
             }
-            else if(!prev.contains(reachable.getData())) {
+            // if not visited and not in black list
+            // create callable and add to future
+            // recursive call to getLightestPaths sending neighbor
+            else if(!blackList.contains(neighbor.getData())) {
                 Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
                 {
-                    List<T> newPrev = new ArrayList<>(prev);
-                    return getPaths(partOfGraph, newPrev, reachable, dest);
+                    List<T> newPrev = new ArrayList<>(blackList);
+                    return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
                 };
 
                 futures.add(threadPool.submit(taskToHandle));
@@ -52,6 +65,7 @@ public class BfsBf<T> {
 
         for (Future<Collection<Pair<List<T>,Integer>>> future : futures){
             try {
+                //Get all neighbors paths from future
                 Collection<Pair<List<T>,Integer>> pairs = future.get();
                 paths.addAll(pairs);
             } catch (InterruptedException e) {
@@ -61,12 +75,23 @@ public class BfsBf<T> {
             }
         }
 
+        //Sending all neighbors paths and source data
         paths = getMinPaths(paths,source.getData(),value);
+
+        //mark in visited and save lightest paths data
         visited.get().put(source.getData(),paths);
 
         return paths;
     }
 
+    /**
+     * Add source node to all lightest neighbors paths and increase the value
+     * Returns the new paths
+     * @param paths
+     * @param source
+     * @param value
+     * @return lightest paths includes source
+     */
     private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths,T source,int value) {
         OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
         Collection<Pair<List<T>, Integer>> finalPaths = new ArrayList<>();
@@ -75,6 +100,7 @@ public class BfsBf<T> {
             int min = minPath.getAsInt();
             for (Pair<List<T>, Integer> pair : paths) {
                 if(pair.getValue() == min) {
+                    //add the source to path and increase the value
                     pair.getKey().add(source);
                     finalPaths.add(new Pair<>(pair.getKey(), pair.getValue() + value));
                 }
@@ -83,35 +109,3 @@ public class BfsBf<T> {
         return finalPaths;
     }
 }
-
-
-/*
-    1  50 30
-    15 20 10
-   -80 35 55
- */
-
-/*
-shortest = -9
-(1,15,-80,35,20)
- */
-
-/*
- Queue = (1,50) , (1,15)
- Queue = (1,15)
- Queue = (1,15) (1,50,30) (1,50 ,20)
- Queue = (1,50,30) (1,50 ,20)
- Queue = (1,50,30) (1,50 ,20) (1,15,20) (1,15,-8)
- Queue = (1,50,30) (1,50 ,20) (1,15,20) (1,15,-8)
- Queue =  (1,50 ,20) (1,15,20) (1,15,-8) (1,50,30,10)
- Queue =  (1,15,-80) (1,50,30,10)
- Queue =  (1,15,-80) (1,50,30,10)
- Queue =   (1,50,30,10) (1,15,-80,35)
- Queue =   (1,15,-80,35) (1,50,30,10,20) (1,50,30,10,55)
- Queue =    (1,50,30,10,20) (1,50,30,10,55) (1,15,-80,35,20) (1,15,-80,35,55)
- Queue =   (1,15,-80,35,20) (1,15,-80,35,55) (1,50,30,10,35)
- Queue =   (1,15,-80,35,55) (1,50,30,10,35)
- Queue =    (1,50,30,10,35) (1,15,-80,35,55,10)
- Queue =    (1,15,-80,35,55,10)  (1,50,30,10,35,20)  (1,50,30,10,35,-80)
- Queue =      (1,50,30,10,35,20)  (1,50,30,10,35,-80) (1,15,-80,35,55,10,30) (1,15,-80,35,55,10,20)
-*/
