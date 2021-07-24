@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 public class MatrixIHandler implements IHandler {
     private Matrix matrix;
     private Index start,end;
+    private TraversableMatrix traversableMatrix;
 
     /*
     to clear data members between clients (if same instance is shared among clients/tasks)
@@ -16,6 +17,7 @@ public class MatrixIHandler implements IHandler {
         this.matrix = null;
         this.start = null;
         this.end = null;
+        this.traversableMatrix = null;
     }
 
     @Override
@@ -29,7 +31,7 @@ public class MatrixIHandler implements IHandler {
         this.resetParams(); // in order to use same handler between tasks/clients
 
         boolean doWork = true;
-        while(doWork){
+        while (doWork) {
             /*
              Use switch-case in order to get commands from client
              - client sends a 2D array
@@ -40,78 +42,127 @@ public class MatrixIHandler implements IHandler {
              */
 
             // client send a verbal command
-            switch(objectInputStream.readObject().toString()){
-                case "matrix":{
+            switch (objectInputStream.readObject().toString()) {
+                case "matrix": {
                     // client will send a 2d array. handler will create a new Matrix object
-                    int[][] primitiveMatrix = (int[][])objectInputStream.readObject();
-                    System.out.println("Server: Got 2d array from client");
-                    this.matrix = new Matrix(primitiveMatrix);
-                    this.matrix.printMatrix();
+                    try {
+                        int[][] primitiveMatrix = (int[][]) objectInputStream.readObject();
+                        System.out.println("Server: Got 2d array from client");
+                        this.matrix = new Matrix(primitiveMatrix);
+                        this.matrix.printMatrix();
+                        traversableMatrix = new TraversableMatrix(this.matrix);
+                    } catch (Exception e) {
+                        System.out.println("matrix - Invalid Matrix from client");
+                        throw new Exception("Invalid Matrix");
+                    }
                     break;
                 }
+                //Task 1
+                case "getAllLinkedPoints":
+                    validateMatrix();
 
-                case "getAllLinkedPoints"://Task 1
                     try {
-                        List<HashSet<Index>>finalList = getAllLinkedPoints();
+                        List<HashSet<Index>> finalList = getAllLinkedPoints();
                         objectOutputStream.writeObject(finalList);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
+                    } catch (Exception e) {
+                        System.out.println("getAllLinkedPoints - something went wrong: " + e.getMessage());
+                        throw e;
                     }
-                    break;
 
-                case "getShortestPath": //Task 2
-                    TraversableMatrix traversableMatrix;
-                    traversableMatrix = new TraversableMatrix(this.matrix);
-                    if(this.matrix.getPrimitiveMatrix().length >50 ||  this.matrix.getPrimitiveMatrix()[0].length > 50){
+                    break;
+                //Task 2
+                case "getShortestPath":
+                    validateMatrix();
+                    validateStartIndex();
+                    validateEndIndex();
+
+                    if (this.matrix.getPrimitiveMatrix().length > 50 || this.matrix.getPrimitiveMatrix()[0].length > 50) {
                         throw new Exception("Invalid matrix - max should be 50 x 50");
                     }
-                    Index source  = (Index)objectInputStream.readObject();
-                    Index dest = (Index)objectInputStream.readObject();
+
                     BFSvisit<Index> bfsVisit = new BFSvisit<>();
-                    traversableMatrix.setStartIndex(source);
-                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix,new Node(dest));
+                    traversableMatrix.setStartIndex(this.start);
+                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix, new Node(this.end));
 
                     //return to client
                     objectOutputStream.writeObject(path);
+
                     break;
-                case "getNumOfValidSubmarines"://Task 3
+                //Task 3
+                case "getNumOfValidSubmarines":
+                   validateMatrix();
                     try {
                         //Get all linked points
-                        List<HashSet<Index>>finalList = getAllLinkedPoints();
+                        List<HashSet<Index>> finalList = getAllLinkedPoints();
                         int num = getValidateSubmarines(finalList);
                         objectOutputStream.writeObject(num);
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        throw e;
                     }
                     break;
-                case "getLightestPath"://Task 4
-                    TraversableMatrix traversableMatrix2;
-                    traversableMatrix2 = new TraversableMatrix(this.matrix);
-                    Index source2  = (Index)objectInputStream.readObject();
-                    Index dest2 = (Index)objectInputStream.readObject();
+                //Task 4
+                case "getLightestPath":
+                    validateMatrix();
+                    validateStartIndex();
+                    validateEndIndex();
+
                     BfsBfVisit<Index> bfsVisit2 = new BfsBfVisit<>();
 
-                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix2,new ArrayList<>(),new Node(source2),new Node(dest2));
-                    Collection<Collection<Index>> path2 = pairs.stream().map(p->reverse(p.getKey())).collect(Collectors.toList());
+                    Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new Node(start), new Node(end));
+                    Collection<Collection<Index>> path2 = pairs.stream().map(p -> reverse(p.getKey())).collect(Collectors.toList());
                     //return to client
                     objectOutputStream.writeObject(path2);
                     break;
 
-                case "start index":{
-                    this.start = (Index)objectInputStream.readObject();
+                case "start index": {
+                    try {
+                        this.start = (Index) objectInputStream.readObject();
+                    } catch (ClassCastException e) {
+                        throw new Exception("Invalid source");
+                    }
                     break;
                 }
 
-                case "end index":{
-                    this.end = (Index)objectInputStream.readObject();
+                case "end index": {
+                    try {
+                        this.end = (Index) objectInputStream.readObject();
+                    } catch (ClassCastException e) {
+                        throw new Exception("Invalid dest");
+                    }
                     break;
                 }
 
-                case "stop":{
+                case "stop": {
                     doWork = false;
                     break;
                 }
             }
+        }
+    }
+
+    private void validateStartIndex() throws Exception{
+        if(start == null){
+            throw new Exception("No start index found");
+        }
+        if (!traversableMatrix.isValidIndex(this.start)) {
+            throw new Exception("Source is out of matrix");
+        }
+    }
+
+    private void validateEndIndex() throws Exception{
+        if(end == null){
+            throw new Exception("No end index found");
+        }
+        if (!traversableMatrix.isValidIndex(this.start)) {
+            throw new Exception("Source is out of matrix");
+        }
+    }
+
+    private void validateMatrix() throws Exception{
+        if(matrix == null){
+            throw new Exception("No matrix found");
         }
     }
 

@@ -14,9 +14,9 @@ public class Client {
 
         // sending #1 matrix
         int[][] source = {
-                {1, 1, 1, 1},
-                {1, 0, 1, 1},
-                {1, 1, 1, 1},
+                {1, 0, 0, 1},
+                {1, 0, 0, 1},
+                {1, 0, 0, 1},
                 {1, 1, 0, 1}
         };
         //send "matrix" command then write 2d array to socket
@@ -35,9 +35,11 @@ public class Client {
         }
 
         //Task 2
-        toServer.writeObject("getShortestPath");
+        toServer.writeObject("start index");
         toServer.writeObject(new Index(1, 0));
+        toServer.writeObject("end index");
         toServer.writeObject(new Index(1, 2));
+        toServer.writeObject("getShortestPath");
         Collection<List<Index>> shortestPaths = (Collection<List<Index>>) fromServer.readObject();
         if(shortestPaths.size() == 0){
             System.out.println("There are no available allPaths between 2 indexes");
@@ -61,9 +63,12 @@ public class Client {
         toServer.writeObject("matrix");
         toServer.writeObject(source4);
 
-        toServer.writeObject("getLightestPath");
+        toServer.writeObject("start index");
         toServer.writeObject(new Index(1, 0));
+        toServer.writeObject("end index");
         toServer.writeObject(new Index(1, 2));
+
+        toServer.writeObject("getLightestPath");
         Collection<List<Index>> lightestPaths = (Collection<List<Index>>) fromServer.readObject();
         if(lightestPaths.size() == 0) {
             System.out.println("There are no available allPaths between 2 indexes");

@@ -24,11 +24,6 @@ public class TraversableMatrix implements Traversable<Index> {
     }
 
     @Override
-    public void addBanIndex(Index index){
-        banList.add(index);
-    }
-
-    @Override
     public Node<Index> getOrigin() throws NullPointerException{
         if (this.startIndex == null) throw new NullPointerException("start index is not initialized");
         return new Node<>(this.startIndex);
@@ -58,10 +53,12 @@ public class TraversableMatrix implements Traversable<Index> {
                 .stream().filter(p->!banList.contains(p)).map(index -> new Node<>(index, someNode)).collect(Collectors.toList());
     }
 
-
-
     @Override
     public String toString() {
         return matrix.toString();
+    }
+
+    public boolean isValidIndex(Index index){
+        return matrix.isValidIndex(index);
     }
 }

@@ -140,4 +140,12 @@ public class Matrix {
     }
 
 
+    public boolean isValidIndex(Index index) {
+        try {
+            int extracted = primitiveMatrix[index.row][index.column];
+        } catch (ArrayIndexOutOfBoundsException ignored) {
+            return false;
+        }
+        return true;
+    }
 }
