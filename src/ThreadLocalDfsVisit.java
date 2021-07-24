@@ -36,4 +36,8 @@ public class ThreadLocalDfsVisit<T> {
         return blackList;
     }
 
+    public void reset() {
+        stackThreadLocal.get().clear();
+        setThreadLocal.get().clear();
+    }
 }

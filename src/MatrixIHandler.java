@@ -3,7 +3,6 @@ import javafx.util.Pair;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class MatrixIHandler implements IHandler {
@@ -89,10 +88,10 @@ public class MatrixIHandler implements IHandler {
                     traversableMatrix2 = new TraversableMatrix(this.matrix);
                     Index source2  = (Index)objectInputStream.readObject();
                     Index dest2 = (Index)objectInputStream.readObject();
-                    BFSvisit3<Index> bfsVisit2 = new BFSvisit3<>();
+                    BfsBf<Index> bfsVisit2 = new BfsBf<>();
 
-                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getPaths(traversableMatrix2,new ArrayList<>(),0,new Node(source2),new Node(dest2));
-                    Collection<Collection<Index>> path2 = pairs.stream().map(Pair::getKey).collect(Collectors.toList());
+                    Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getPaths(traversableMatrix2,new ArrayList<>(),new Node(source2),new Node(dest2));
+                    Collection<Collection<Index>> path2 = pairs.stream().map(p->reverse(p.getKey())).collect(Collectors.toList());
                     //return to client
                     objectOutputStream.writeObject(path2);
                     break;
@@ -113,6 +112,11 @@ public class MatrixIHandler implements IHandler {
                 }
             }
         }
+    }
+
+    private List<Index> reverse(List<Index> list){
+        Collections.reverse(list);
+        return list;
     }
 
     private int getValidateSubmarines(List<HashSet<Index>> finalList) {
@@ -168,20 +172,24 @@ public class MatrixIHandler implements IHandler {
        List<Index> actives = this.matrix.getAllActivePoints();
        List<Index> found = Collections.synchronizedList(new ArrayList<>());
 
+       if(actives.size() == 0){
+           return new ArrayList<>();
+       }
+
        List<Future<HashSet<Index>>> futures = new ArrayList<>();
 
+       int maxThreads = actives.size() < 10 ? actives.size() :10;
         //run traverse dfs on all active points
-        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(3, 5, 10,
+        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1,  maxThreads , 10,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
-
+        ThreadLocalDfsVisit threadLocalDfsVisit = new ThreadLocalDfsVisit<Index>();
 
         while(!actives.isEmpty()){
             Index active = actives.remove(0);
 
             Callable<HashSet<Index>> taskHandle = () -> {
                 if(active != null) {
-                    ThreadLocalDfsVisit threadLocalDfsVisit = new ThreadLocalDfsVisit<Index>();
                     TraversableMatrix traversableMatrix = new TraversableMatrix(this.matrix);
                     traversableMatrix.setStartIndex(active);
 
@@ -196,6 +204,7 @@ public class MatrixIHandler implements IHandler {
                     }
 
                     //finding all the linked points and add to HashSet
+                    threadLocalDfsVisit.reset();
                     List<Index> points = threadLocalDfsVisit.traverse(traversableMatrix, true);
 
                     //Double check synchronized

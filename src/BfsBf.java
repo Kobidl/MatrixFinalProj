@@ -4,53 +4,49 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-public class BFSvisit3<T> {
+public class BfsBf<T> {
 
     protected final ThreadLocal<HashMap<T,Collection<Pair<List<T>,Integer>>>> visited =
             ThreadLocal.withInitial(HashMap::new);
 
 
-    public BFSvisit3(){
+    public BfsBf(){
     }
 
 
-    public Collection<Pair<List<T>,Integer>> getPaths(Traversable<T> partOfGraph, List<T> prev,int sumOfPrev,Node<T> source, Node<T> dest ){
+    public Collection<Pair<List<T>,Integer>> getPaths(Traversable<T> partOfGraph, List<T> prev,Node<T> source, Node<T> dest ){
 
         Collection<Pair<List<T>,Integer>> paths = new ArrayList<>();
 
         Collection<Future<Collection<Pair<List<T>,Integer>>>> futures = new ArrayList<>();
-        if(source.equals(dest)){
-            prev.add(dest.getData());
 
-            paths.add( new Pair<>(prev,0));
+        if(source.equals(dest)){
+            List<T> t = new ArrayList<>();
+            t.add(source.getData());
+            paths.add( new Pair<>(t,0));
             return paths;
         }
+
+        prev.add(source.getData());
+        int value = partOfGraph.getValue(source.getData());
 
         ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, 4, 50,
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
         Collection<Node<T>> reachableNodes = partOfGraph.getNeighborNodes(source,false);
-        final int sum = sumOfPrev + partOfGraph.getValue(source.getData());
-        for (Node<T> reachable : reachableNodes)
-        {
-            if(reachable.equals(dest)) {
-                List<T> newPath = new ArrayList<>(prev);
-                newPath.add(source.getData());
-                newPath.add(reachable.getData());
-                paths.add(new Pair<>(newPath,sum));
-            }else if(!prev.contains(reachable.getData())){
-                if(visited.get().containsKey(reachable.getData())){
-                    return visited.get().get(reachable.getData());
-                }else {
-                    Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
-                    {
-                        List<T> newPrev = new ArrayList<>(prev);
-                        newPrev.add(source.getData());
-                        return getPaths(partOfGraph, newPrev, sum, reachable, dest);
-                    };
 
-                    futures.add(threadPool.submit(taskToHandle));
-                }
+        for (Node<T> reachable : reachableNodes) {
+            if(visited.get().containsKey(reachable.getData())){
+                paths.addAll(visited.get().get(reachable.getData()));
+            }
+            else if(!prev.contains(reachable.getData())) {
+                Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
+                {
+                    List<T> newPrev = new ArrayList<>(prev);
+                    return getPaths(partOfGraph, newPrev, reachable, dest);
+                };
+
+                futures.add(threadPool.submit(taskToHandle));
             }
         }
 
@@ -58,7 +54,6 @@ public class BFSvisit3<T> {
             try {
                 Collection<Pair<List<T>,Integer>> pairs = future.get();
                 paths.addAll(pairs);
-                //int minPath = pairs.stream().mapToInt(Pair::getValue).min().getAsInt();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (ExecutionException e) {
@@ -66,23 +61,26 @@ public class BFSvisit3<T> {
             }
         }
 
-        OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
-        if(minPath.isPresent()){
-            int min = minPath.getAsInt();
-            paths = paths.stream().filter(p->p.getValue() == min).collect(Collectors.toList());
-            visited.get().put(source.getData(),
-                    paths.stream().map(p->new Pair<>(difference(p.getKey(),prev),p.getValue() - sum )).collect(Collectors.toList()));
-        }
-
-
+        paths = getMinPaths(paths,source.getData(),value);
+        visited.get().put(source.getData(),paths);
 
         return paths;
     }
 
-    public <T> List<T> difference(List<T> first, List<T> second) {
-        List<T> toReturn = new ArrayList<>(first);
-        toReturn.removeAll(second);
-        return toReturn;
+    private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths,T source,int value) {
+        OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
+        Collection<Pair<List<T>, Integer>> finalPaths = new ArrayList<>();
+
+        if (minPath.isPresent()) {
+            int min = minPath.getAsInt();
+            for (Pair<List<T>, Integer> pair : paths) {
+                if(pair.getValue() == min) {
+                    pair.getKey().add(source);
+                    finalPaths.add(new Pair<>(pair.getKey(), pair.getValue() + value));
+                }
+            }
+        }
+        return finalPaths;
     }
 }
 

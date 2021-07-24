@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 public class TraversableMatrix implements Traversable<Index> {
     protected final Matrix matrix;
     protected Index startIndex;
+    protected List<Index> banList = new ArrayList<>();
 
     public TraversableMatrix(Matrix matrix) {
         this.matrix = matrix;
@@ -20,6 +21,11 @@ public class TraversableMatrix implements Traversable<Index> {
 
     public void setStartIndex(Index startIndex) {
         this.startIndex = startIndex;
+    }
+
+    @Override
+    public void addBanIndex(Index index){
+        banList.add(index);
     }
 
     @Override
@@ -49,7 +55,7 @@ public class TraversableMatrix implements Traversable<Index> {
     @Override
     public Collection<Node<Index>> getNeighborNodes(Node<Index> someNode,boolean includeDiagonal) {
         return this.matrix.getNeighbors(someNode.getData(), includeDiagonal)
-                .stream().map(index -> new Node<>(index, someNode)).collect(Collectors.toList());
+                .stream().filter(p->!banList.contains(p)).map(index -> new Node<>(index, someNode)).collect(Collectors.toList());
     }
 
 
