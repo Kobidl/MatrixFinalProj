@@ -89,7 +89,7 @@ public class MatrixIHandler implements IHandler {
                     traversableMatrix2 = new TraversableMatrix(this.matrix);
                     Index source2  = (Index)objectInputStream.readObject();
                     Index dest2 = (Index)objectInputStream.readObject();
-                    BfsBf<Index> bfsVisit2 = new BfsBf<>();
+                    BfsBfVisit<Index> bfsVisit2 = new BfsBfVisit<>();
 
                     Collection<Pair<List<Index>,Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix2,new ArrayList<>(),new Node(source2),new Node(dest2));
                     Collection<Collection<Index>> path2 = pairs.stream().map(p->reverse(p.getKey())).collect(Collectors.toList());

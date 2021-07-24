@@ -3,13 +3,13 @@ import javafx.util.Pair;
 import java.util.*;
 import java.util.concurrent.*;
 
-public class BfsBf<T> {
+public class BfsBfVisit<T> {
 
     protected final ThreadLocal<HashMap<T,Collection<Pair<List<T>,Integer>>>> visited =
             ThreadLocal.withInitial(HashMap::new);
 
 
-    public BfsBf(){
+    public BfsBfVisit(){
     }
 
 
