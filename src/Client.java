@@ -15,7 +15,7 @@ public class Client {
         // sending #1 matrix
         int[][] source = {
                 {1, 0, 0, 1},
-                {1, 0, 0, 1},
+                {1, 1, 1, 1},
                 {1, 0, 0, 1},
                 {1, 1, 0, 1}
         };

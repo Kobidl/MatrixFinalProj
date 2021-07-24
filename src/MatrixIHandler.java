@@ -57,65 +57,6 @@ public class MatrixIHandler implements IHandler {
                     }
                     break;
                 }
-                //Task 1
-                case "getAllLinkedPoints":
-                    validateMatrix();
-
-                    try {
-                        List<HashSet<Index>> finalList = getAllLinkedPoints();
-                        objectOutputStream.writeObject(finalList);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (Exception e) {
-                        System.out.println("getAllLinkedPoints - something went wrong: " + e.getMessage());
-                        throw e;
-                    }
-
-                    break;
-                //Task 2
-                case "getShortestPath":
-                    validateMatrix();
-                    validateStartIndex();
-                    validateEndIndex();
-
-                    if (this.matrix.getPrimitiveMatrix().length > 50 || this.matrix.getPrimitiveMatrix()[0].length > 50) {
-                        throw new Exception("Invalid matrix - max should be 50 x 50");
-                    }
-
-                    BFSvisit<Index> bfsVisit = new BFSvisit<>();
-                    traversableMatrix.setStartIndex(this.start);
-                    Collection<Collection<Index>> path = bfsVisit.traverse(traversableMatrix, new Node(this.end));
-
-                    //return to client
-                    objectOutputStream.writeObject(path);
-
-                    break;
-                //Task 3
-                case "getNumOfValidSubmarines":
-                   validateMatrix();
-                    try {
-                        //Get all linked points
-                        List<HashSet<Index>> finalList = getAllLinkedPoints();
-                        int num = getValidateSubmarines(finalList);
-                        objectOutputStream.writeObject(num);
-                    } catch (InterruptedException e) {
-                        throw e;
-                    }
-                    break;
-                //Task 4
-                case "getLightestPath":
-                    validateMatrix();
-                    validateStartIndex();
-                    validateEndIndex();
-
-                    BfsBfVisit<Index> bfsVisit2 = new BfsBfVisit<>();
-
-                    Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new Node(start), new Node(end));
-                    Collection<Collection<Index>> path2 = pairs.stream().map(p -> reverse(p.getKey())).collect(Collectors.toList());
-                    //return to client
-                    objectOutputStream.writeObject(path2);
-                    break;
-
                 case "start index": {
                     try {
                         this.start = (Index) objectInputStream.readObject();
@@ -133,6 +74,48 @@ public class MatrixIHandler implements IHandler {
                     }
                     break;
                 }
+                //Task 1
+                case "getAllLinkedPoints":
+                    validateMatrix();
+
+                    try {
+                        List<HashSet<Index>> finalList = getAllLinkedPoints();
+                        objectOutputStream.writeObject(finalList);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        System.out.println("getAllLinkedPoints - something went wrong: " + e.getMessage());
+                        throw e;
+                    }
+
+                    break;
+                //Task 2
+                case "getShortestPath":
+                    Collection<Collection<Index>> path = getShortestPath();
+
+                    //return to client
+                    objectOutputStream.writeObject(path);
+
+                    break;
+                //Task 3
+                case "getNumOfValidSubmarines":
+                    validateMatrix();
+                    try {
+                        //Get all linked points
+                        List<HashSet<Index>> finalList = getAllLinkedPoints();
+                        int num = getValidateSubmarines(finalList);
+                        objectOutputStream.writeObject(num);
+                    } catch (InterruptedException e) {
+                        throw e;
+                    }
+                    break;
+                //Task 4
+                case "getLightestPath":
+                    Collection<Collection<Index>> lightestPaths = getLightestPaths();
+                    //return to client
+                    objectOutputStream.writeObject(lightestPaths);
+                    break;
+
 
                 case "stop": {
                     doWork = false;
@@ -140,6 +123,31 @@ public class MatrixIHandler implements IHandler {
                 }
             }
         }
+    }
+
+    private Collection<Collection<Index>> getLightestPaths() throws Exception{
+        validateMatrix();
+        validateStartIndex();
+        validateEndIndex();
+
+        BfsBfVisit<Index> bfsVisit2 = new BfsBfVisit<>();
+
+        Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new Node(start), new Node(end));
+        return pairs.stream().map(p -> reverse(p.getKey())).collect(Collectors.toList());
+    }
+
+    private Collection<Collection<Index>> getShortestPath()throws Exception {
+        validateMatrix();
+        validateStartIndex();
+        validateEndIndex();
+
+        if (this.matrix.getPrimitiveMatrix().length > 50 || this.matrix.getPrimitiveMatrix()[0].length > 50) {
+            throw new Exception("Invalid matrix - max should be 50 x 50");
+        }
+
+        BFSvisit<Index> bfsVisit = new BFSvisit<>();
+        traversableMatrix.setStartIndex(this.start);
+        return bfsVisit.traverse(traversableMatrix, new Node(this.end));
     }
 
     private void validateStartIndex() throws Exception{
