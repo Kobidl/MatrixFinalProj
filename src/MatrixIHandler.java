@@ -130,9 +130,9 @@ public class MatrixIHandler implements IHandler {
         validateStartIndex();
         validateEndIndex();
 
-        BfVisit<Index> bfsVisit2 = new BfVisit<>();
+        BfVisit<Index> bfVisit = new BfVisit<>();
 
-        Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new DirectNode<>(start), new DirectNode<>(end));
+        Collection<Pair<List<Index>, Integer>> pairs = bfVisit.getLightestPaths(traversableMatrix, new ArrayList<>(), new DirectNode<>(start), new DirectNode<>(end));
         return pairs.stream().map(p -> reverse(p.getKey())).collect(Collectors.toList());
     }
 
