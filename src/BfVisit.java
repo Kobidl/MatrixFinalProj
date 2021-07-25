@@ -8,13 +8,13 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
-public class BfsBfVisit<T> {
+public class BfVisit<T> {
 
     private HashMap<DirectNode<T>, Future<Collection<Pair<List<T>, Integer>>>> visited = new HashMap<>();
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
-    public BfsBfVisit() {
+    public BfVisit() {
 
     }
 
