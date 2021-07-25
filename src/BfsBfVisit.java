@@ -2,12 +2,18 @@ import javafx.util.Pair;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 public class BfsBfVisit<T> {
 
-    protected final ThreadLocal<HashMap<T,Collection<Pair<List<T>,Integer>>>> visited =
-            ThreadLocal.withInitial(HashMap::new);
+//    protected final ThreadLocal<HashMap<T,Collection<Pair<List<T>,Integer>>>> visited =
+//            ThreadLocal.withInitial(HashMap::new);
 
+    protected HashMap<T,Collection<Pair<List<T>,Integer>>> visited = new HashMap<>();
+
+    ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public BfsBfVisit(){
     }
@@ -45,14 +51,23 @@ public class BfsBfVisit<T> {
         Collection<Node<T>> neighborNodes = partOfGraph.getNeighborNodes(source,false);
 
         for (Node<T> neighbor : neighborNodes) {
+            if(blackList.contains(neighbor.getData()))
+                continue;
             //if visited add all known lightest paths
-            if(visited.get().containsKey(neighbor.getData())){
-                paths.addAll(visited.get().get(neighbor.getData()));
+            boolean found = false;
+            readWriteLock.readLock().lock();
+            try {
+                if (visited.containsKey(neighbor.getData())){
+                    paths.addAll(visited.get(neighbor.getData()));
+                    found = true;
+                }
+            }catch (Exception ignored){}finally {
+                readWriteLock.readLock().unlock();
             }
             // if not visited and not in black list
             // create callable and add to future
             // recursive call to getLightestPaths sending neighbor
-            else if(!blackList.contains(neighbor.getData())) {
+            if(!found) {
                 Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
                 {
                     List<T> newPrev = new ArrayList<>(blackList);
@@ -78,8 +93,16 @@ public class BfsBfVisit<T> {
         //Sending all neighbors paths and source data
         paths = getMinPaths(paths,source.getData(),value);
 
-        //mark in visited and save lightest paths data
-        visited.get().put(source.getData(),paths);
+        if(paths.size() > 0) {
+            //mark in visited and save lightest paths data
+            readWriteLock.writeLock().lock();
+            try {
+                visited.put(source.getData(), paths);
+            } catch (Exception ignored) {
+            } finally {
+                readWriteLock.writeLock().unlock();
+            }
+        }
 
         return paths;
     }
@@ -93,19 +116,23 @@ public class BfsBfVisit<T> {
      * @return lightest paths includes source
      */
     private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths,T source,int value) {
-        OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
+        paths = paths.stream().filter(p->!p.getKey().contains(source)).collect(Collectors.toList());
+        OptionalInt minPath = paths.stream().filter(p->!p.getKey().contains(source)).mapToInt(Pair::getValue).min();
         Collection<Pair<List<T>, Integer>> finalPaths = new ArrayList<>();
 
         if (minPath.isPresent()) {
             int min = minPath.getAsInt();
             for (Pair<List<T>, Integer> pair : paths) {
-                if(pair.getValue() == min) {
+                if(pair.getValue() == min ) {
                     //add the source to path and increase the value
-                    pair.getKey().add(source);
-                    finalPaths.add(new Pair<>(pair.getKey(), pair.getValue() + value));
+                    Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
+                    newPair.getKey().add(source);
+                    finalPaths.add(newPair);
                 }
             }
         }
+
+
         return finalPaths;
     }
 }
