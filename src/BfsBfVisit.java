@@ -10,8 +10,7 @@ import java.util.stream.Collectors;
 
 public class BfsBfVisit<T> {
 
-    HashMap<DirectNode<T>, Future<Collection<Pair<List<T>, Integer>>>> visited = new HashMap<>();
-
+    private HashMap<DirectNode<T>, Future<Collection<Pair<List<T>, Integer>>>> visited = new HashMap<>();
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
