@@ -8,16 +8,12 @@ import java.util.stream.Collectors;
 
 public class BfsBfVisit<T> {
 
-//    protected final ThreadLocal<HashMap<T,Collection<Pair<List<T>,Integer>>>> visited =
-//            ThreadLocal.withInitial(HashMap::new);
-
-    protected HashMap<T,Collection<Pair<List<T>,Integer>>> visited = new HashMap<>();
+    protected HashMap<Node<T>,Collection<Pair<List<T>,Integer>>> visited = new HashMap<>();
 
     ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
     public BfsBfVisit(){
     }
-
 
     /**
      * Get lightest paths from source to dest in graph
@@ -33,13 +29,28 @@ public class BfsBfVisit<T> {
 
         Collection<Future<Collection<Pair<List<T>,Integer>>>> futures = new ArrayList<>();
 
-        //if reached to end return path with dest point
         if(source.equals(dest)){
             List<T> t = new ArrayList<>();
             t.add(source.getData());
-            paths.add( new Pair<>(t,0));
+            paths.add( new Pair<>(t,partOfGraph.getValue(dest.getData())));
             return paths;
         }
+
+        //if visited add all known lightest paths
+        readWriteLock.readLock().lock();
+        try {
+            if (visited.containsKey(source)) {
+                paths = new ArrayList<>(visited.get(source));
+            }
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }finally {
+            readWriteLock.readLock().unlock();
+        }
+
+
+        //if reached to end return path with dest point
+
 
         //adding point to black list
         blackList.add(source.getData());
@@ -49,40 +60,38 @@ public class BfsBfVisit<T> {
                 TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
         Collection<Node<T>> neighborNodes = partOfGraph.getNeighborNodes(source,false);
-
         for (Node<T> neighbor : neighborNodes) {
-            if(blackList.contains(neighbor.getData()))
+            if (blackList.contains(neighbor.getData())) {
                 continue;
-            //if visited add all known lightest paths
-            boolean found = false;
-            readWriteLock.readLock().lock();
-            try {
-                if (visited.containsKey(neighbor.getData())){
-                    paths.addAll(visited.get(neighbor.getData()));
-                    found = true;
-                }
-            }catch (Exception ignored){}finally {
-                readWriteLock.readLock().unlock();
             }
+            if (paths.stream().anyMatch(p -> p.getKey().contains(neighbor)))
+                continue;
+
             // if not visited and not in black list
             // create callable and add to future
             // recursive call to getLightestPaths sending neighbor
-            if(!found) {
-                Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
-                {
-                    List<T> newPrev = new ArrayList<>(blackList);
-                    return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
-                };
 
-                futures.add(threadPool.submit(taskToHandle));
-            }
+            Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
+            {
+                List<T> newPrev = new ArrayList<>(blackList);
+                return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
+            };
+
+            futures.add(threadPool.submit(taskToHandle));
         }
 
         for (Future<Collection<Pair<List<T>,Integer>>> future : futures){
             try {
                 //Get all neighbors paths from future
                 Collection<Pair<List<T>,Integer>> pairs = future.get();
-                paths.addAll(pairs);
+                for (Pair<List<T>, Integer> pair : pairs) {
+                    if(!pair.getKey().contains(source.getData())) {
+                        //add the source to path and increase the value
+                        Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
+                        newPair.getKey().add(source.getData());
+                        paths.add(newPair);
+                    }
+                }
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (ExecutionException e) {
@@ -91,19 +100,18 @@ public class BfsBfVisit<T> {
         }
 
         //Sending all neighbors paths and source data
-        paths = getMinPaths(paths,source.getData(),value);
+        paths = getMinPaths(paths);
 
+        //mark in visited and save lightest paths data
         if(paths.size() > 0) {
-            //mark in visited and save lightest paths data
             readWriteLock.writeLock().lock();
             try {
-                visited.put(source.getData(), paths);
+                visited.put(source, paths);
             } catch (Exception ignored) {
             } finally {
                 readWriteLock.writeLock().unlock();
             }
         }
-
         return paths;
     }
 
@@ -111,28 +119,16 @@ public class BfsBfVisit<T> {
      * Add source node to all lightest neighbors paths and increase the value
      * Returns the new paths
      * @param paths
-     * @param source
-     * @param value
      * @return lightest paths includes source
      */
-    private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths,T source,int value) {
-        paths = paths.stream().filter(p->!p.getKey().contains(source)).collect(Collectors.toList());
-        OptionalInt minPath = paths.stream().filter(p->!p.getKey().contains(source)).mapToInt(Pair::getValue).min();
-        Collection<Pair<List<T>, Integer>> finalPaths = new ArrayList<>();
+    private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths) {
+        OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
 
         if (minPath.isPresent()) {
             int min = minPath.getAsInt();
-            for (Pair<List<T>, Integer> pair : paths) {
-                if(pair.getValue() == min ) {
-                    //add the source to path and increase the value
-                    Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
-                    newPair.getKey().add(source);
-                    finalPaths.add(newPair);
-                }
-            }
+            return paths.stream().distinct().filter(p->p.getValue() == min).collect(Collectors.toList());
         }
 
-
-        return finalPaths;
+        return paths;
     }
 }

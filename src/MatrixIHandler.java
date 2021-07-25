@@ -277,11 +277,6 @@ public class MatrixIHandler implements IHandler {
                     if (found.contains(active)) {
                         return new HashSet<>();
                     }
-                    synchronized (found) {
-                        if (found.contains(active)) {
-                            return new HashSet<>();
-                        }
-                    }
 
                     //Clear ThreadLocal data
                     threadLocalDfsVisit.reset();
@@ -290,14 +285,12 @@ public class MatrixIHandler implements IHandler {
                     HashSet<Index> points = threadLocalDfsVisit.traverse(traversableMatrix, true);
 
                     //Double check synchronized if index already found
-                    if (found.contains(active)) {
-                        //return empty since other thread returned same set
-                        return new HashSet<>();
-                    }
-                    synchronized (found) {
-                        if (!found.contains(active)) {
-                            found.addAll(points);
-                            return points;
+                    if (!found.contains(active)) {
+                        synchronized (found) {
+                            if (!found.contains(active)) {
+                                found.addAll(points);
+                                return points;
+                            }
                         }
                     }
                 }
