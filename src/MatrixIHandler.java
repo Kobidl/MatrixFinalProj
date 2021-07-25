@@ -132,7 +132,7 @@ public class MatrixIHandler implements IHandler {
 
         BfsBfVisit<Index> bfsVisit2 = new BfsBfVisit<>();
 
-        Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new Node(start), new Node(end));
+        Collection<Pair<List<Index>, Integer>> pairs = bfsVisit2.getLightestPaths(traversableMatrix, new ArrayList<>(), new DirectNode<>(start), new DirectNode<>(end));
         return pairs.stream().map(p -> reverse(p.getKey())).collect(Collectors.toList());
     }
 

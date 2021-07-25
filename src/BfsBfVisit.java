@@ -1,87 +1,89 @@
 import javafx.util.Pair;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
 public class BfsBfVisit<T> {
 
-    protected HashMap<Node<T>,Collection<Pair<List<T>,Integer>>> visited = new HashMap<>();
+    HashMap<DirectNode<T>, Future<Collection<Pair<List<T>, Integer>>>> visited = new HashMap<>();
 
-    ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
-    public BfsBfVisit(){
+    private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
+    public BfsBfVisit() {
+
     }
 
     /**
      * Get lightest paths from source to dest in graph
+     *
      * @param partOfGraph
      * @param blackList
      * @param source
      * @param dest
      * @return
      */
-    public Collection<Pair<List<T>,Integer>> getLightestPaths(Traversable<T> partOfGraph, List<Node<T>> blackList, Node<T> source, Node<T> dest ){
+    public Collection<Pair<List<T>, Integer>> getLightestPaths(Traversable<T> partOfGraph, List<T> blackList, DirectNode<T> source, DirectNode<T> dest) {
 
-        Collection<Pair<List<T>,Integer>> paths = new ArrayList<>();
-        Collection<Future<Collection<Pair<List<T>,Integer>>>> futures = new ArrayList<>();
+        Collection<Pair<List<T>, Integer>> paths = new ArrayList<>();
+        Collection<Future<Collection<Pair<List<T>, Integer>>>> futures = new ArrayList<>();
         int newPaths = 0;
 
         //if reached to end return path with dest point
-        if(source.equals(dest)){
+        if (source.getData().equals(dest.getData())) {
             List<T> t = new ArrayList<>();
             t.add(source.getData());
-            paths.add( new Pair<>(t,partOfGraph.getValue(dest.getData())));
+            paths.add(new Pair<>(t, partOfGraph.getValue(dest.getData())));
             return paths;
         }
 
-        //if visited add all known lightest paths
-        readWriteLock.readLock().lock();
-        try {
-            if (visited.containsKey(source)) {
-                paths = new ArrayList<>(visited.get(source));
-            }
-        }catch (Exception e){
-            System.out.println(e.getMessage());
-        }finally {
-            readWriteLock.readLock().unlock();
-        }
 
-
-        //adding point to black list
-        blackList.add(source);
+        blackList.add(source.getData());
         int value = partOfGraph.getValue(source.getData());
 
-        ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, 4, 50,
-                TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
-        Collection<Node<T>> neighborNodes = partOfGraph.getNeighborNodes(source,false);
-        for (Node<T> neighbor : neighborNodes) {
-            if (blackList.contains(neighbor))
+        Collection<DirectNode<T>> neighborNodes = partOfGraph.getNeighborNodes(source, false);
+
+        for (DirectNode<T> neighbor : neighborNodes) {
+            if (blackList.contains(neighbor.getData()))
                 continue;
-            if(paths.stream().anyMatch(p->p.getKey().contains(neighbor)))
+            if(neighbor.getData().equals(dest.getData())){
+                List<T> t = new ArrayList<>();
+                t.add(dest.getData());
+                t.add(source.getData());
+                paths.add(new Pair<>(t, partOfGraph.getValue(dest.getData())+value));
                 continue;
+            }
 
-            // if not visited and not in black list
-            // create callable and add to future
-            // recursive call to getLightestPaths sending neighbor
-
-            Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
-            {
-                List<Node<T>> newPrev = new ArrayList<>(blackList);
-                return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
-            };
-
-            futures.add(threadPool.submit(taskToHandle));
+            readWriteLock.writeLock().lock();
+            if (visited.containsKey(neighbor)) {
+                futures.add(visited.get(neighbor));
+            } else {
+                Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
+                {
+                    List<T> newPrev = new ArrayList<>(blackList);
+                    return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
+                };
+                FutureTask future = new FutureTask(taskToHandle);
+                Thread thread = new Thread(future);
+                thread.run();
+                visited.put(neighbor, future);
+                futures.add(future);
+            }
+            readWriteLock.writeLock().unlock();
         }
 
-        for (Future<Collection<Pair<List<T>,Integer>>> future : futures){
+        for (Future<Collection<Pair<List<T>, Integer>>> future : futures) {
             try {
                 //Get all neighbors paths from future
-                Collection<Pair<List<T>,Integer>> pairs = future.get();
+                Collection<Pair<List<T>, Integer>> pairs = future.get();
                 for (Pair<List<T>, Integer> pair : pairs) {
-                    if(!pair.getKey().contains(source.getData())) {
+                    if (!pair.getKey().contains(source.getData())) {
                         //add the source to path and increase the value
                         Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
                         newPair.getKey().add(source.getData());
@@ -94,22 +96,12 @@ public class BfsBfVisit<T> {
             }
         }
 
-
-        if(newPaths > 0 ) {
-            //Sending all neighbors paths and source data
+        if (newPaths > 0) {
+            //get min paths
             paths = getMinPaths(paths);
-
-            //mark in visited and save lightest paths data
-            if (paths.size() > 0) {
-                readWriteLock.writeLock().lock();
-                try {
-                    visited.put(source, paths);
-                } catch (Exception ignored) {
-                } finally {
-                    readWriteLock.writeLock().unlock();
-                }
-            }
         }
+
+        //return paths
         return paths;
     }
 

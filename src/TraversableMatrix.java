@@ -48,9 +48,9 @@ public class TraversableMatrix implements Traversable<Index> {
     }
 
     @Override
-    public Collection<Node<Index>> getNeighborNodes(Node<Index> someNode,boolean includeDiagonal) {
+    public Collection<DirectNode<Index>> getNeighborNodes(DirectNode<Index> someNode,boolean includeDiagonal) {
         return this.matrix.getNeighbors(someNode.getData(), includeDiagonal)
-                .stream().filter(p->!banList.contains(p)).map(index -> new Node<>(index, someNode)).collect(Collectors.toList());
+                .stream().filter(p->!banList.contains(p)).map(index -> new DirectNode<>(index, someNode)).collect(Collectors.toList());
     }
 
     @Override
