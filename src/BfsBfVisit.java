@@ -2,7 +2,6 @@ import javafx.util.Pair;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 
@@ -23,12 +22,13 @@ public class BfsBfVisit<T> {
      * @param dest
      * @return
      */
-    public Collection<Pair<List<T>,Integer>> getLightestPaths(Traversable<T> partOfGraph, List<T> blackList, Node<T> source, Node<T> dest ){
+    public Collection<Pair<List<T>,Integer>> getLightestPaths(Traversable<T> partOfGraph, List<Node<T>> blackList, Node<T> source, Node<T> dest ){
 
         Collection<Pair<List<T>,Integer>> paths = new ArrayList<>();
-
         Collection<Future<Collection<Pair<List<T>,Integer>>>> futures = new ArrayList<>();
+        int newPaths = 0;
 
+        //if reached to end return path with dest point
         if(source.equals(dest)){
             List<T> t = new ArrayList<>();
             t.add(source.getData());
@@ -49,11 +49,8 @@ public class BfsBfVisit<T> {
         }
 
 
-        //if reached to end return path with dest point
-
-
         //adding point to black list
-        blackList.add(source.getData());
+        blackList.add(source);
         int value = partOfGraph.getValue(source.getData());
 
         ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, 4, 50,
@@ -61,10 +58,9 @@ public class BfsBfVisit<T> {
 
         Collection<Node<T>> neighborNodes = partOfGraph.getNeighborNodes(source,false);
         for (Node<T> neighbor : neighborNodes) {
-            if (blackList.contains(neighbor.getData())) {
+            if (blackList.contains(neighbor))
                 continue;
-            }
-            if (paths.stream().anyMatch(p -> p.getKey().contains(neighbor)))
+            if(paths.stream().anyMatch(p->p.getKey().contains(neighbor)))
                 continue;
 
             // if not visited and not in black list
@@ -73,7 +69,7 @@ public class BfsBfVisit<T> {
 
             Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
             {
-                List<T> newPrev = new ArrayList<>(blackList);
+                List<Node<T>> newPrev = new ArrayList<>(blackList);
                 return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
             };
 
@@ -90,26 +86,28 @@ public class BfsBfVisit<T> {
                         Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
                         newPair.getKey().add(source.getData());
                         paths.add(newPair);
+                        newPaths++;
                     }
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 e.printStackTrace();
             }
         }
 
-        //Sending all neighbors paths and source data
-        paths = getMinPaths(paths);
 
-        //mark in visited and save lightest paths data
-        if(paths.size() > 0) {
-            readWriteLock.writeLock().lock();
-            try {
-                visited.put(source, paths);
-            } catch (Exception ignored) {
-            } finally {
-                readWriteLock.writeLock().unlock();
+        if(newPaths > 0 ) {
+            //Sending all neighbors paths and source data
+            paths = getMinPaths(paths);
+
+            //mark in visited and save lightest paths data
+            if (paths.size() > 0) {
+                readWriteLock.writeLock().lock();
+                try {
+                    visited.put(source, paths);
+                } catch (Exception ignored) {
+                } finally {
+                    readWriteLock.writeLock().unlock();
+                }
             }
         }
         return paths;
