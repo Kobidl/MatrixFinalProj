@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 public class MatrixIHandler implements IHandler {
     private Matrix matrix;
     private Index start,end;
-    private TraversableMatrix traversableMatrix;
 
     /*
     to clear data members between clients (if same instance is shared among clients/tasks)
@@ -17,7 +16,6 @@ public class MatrixIHandler implements IHandler {
         this.matrix = null;
         this.start = null;
         this.end = null;
-        this.traversableMatrix = null;
     }
 
     @Override
@@ -50,7 +48,6 @@ public class MatrixIHandler implements IHandler {
                         System.out.println("Server: Got 2d array from client");
                         this.matrix = new Matrix(primitiveMatrix);
                         this.matrix.printMatrix();
-                        traversableMatrix = new TraversableMatrix(this.matrix);
                     } catch (Exception e) {
                         System.out.println("matrix - Invalid Matrix from client");
                         throw new Exception("Invalid Matrix");
@@ -127,8 +124,9 @@ public class MatrixIHandler implements IHandler {
 
     private Collection<Collection<Index>> getLightestPaths() throws Exception{
         validateMatrix();
-        validateStartIndex();
-        validateEndIndex();
+        TraversableMatrix traversableMatrix = new TraversableMatrix(matrix);
+        validateStartIndex(traversableMatrix);
+        validateEndIndex(traversableMatrix);
 
         BfVisit<Index> bfVisit = new BfVisit<>();
 
@@ -138,8 +136,9 @@ public class MatrixIHandler implements IHandler {
 
     private Collection<Collection<Index>> getShortestPath()throws Exception {
         validateMatrix();
-        validateStartIndex();
-        validateEndIndex();
+        TraversableMatrix traversableMatrix = new TraversableMatrix(this.matrix);
+        validateStartIndex(traversableMatrix);
+        validateEndIndex(traversableMatrix);
 
         if (this.matrix.getPrimitiveMatrix().length > 50 || this.matrix.getPrimitiveMatrix()[0].length > 50) {
             throw new Exception("Invalid matrix - max should be 50 x 50");
@@ -150,7 +149,7 @@ public class MatrixIHandler implements IHandler {
         return bfsVisit.traverse(traversableMatrix, new Node(this.end));
     }
 
-    private void validateStartIndex() throws Exception{
+    private void validateStartIndex(TraversableMatrix traversableMatrix) throws Exception{
         if(start == null){
             throw new Exception("No start index found");
         }
@@ -159,7 +158,7 @@ public class MatrixIHandler implements IHandler {
         }
     }
 
-    private void validateEndIndex() throws Exception{
+    private void validateEndIndex(TraversableMatrix traversableMatrix) throws Exception{
         if(end == null){
             throw new Exception("No end index found");
         }
