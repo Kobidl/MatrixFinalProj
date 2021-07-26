@@ -8,5 +8,5 @@ public interface Traversable<T> {
     public int getValue(T index);
 
     public Collection<Node<T>>  getReachableNodes(Node<T> someNode,boolean includeDiagonal);
-    public Collection<DirectNode<T>>  getNeighborNodes(DirectNode<T> someNode,boolean includeDiagonal);
+    public Collection<DirectNode<T>>  getDirectedNeighborNodes(DirectNode<T> someNode,boolean includeDiagonal);
 }

@@ -45,7 +45,7 @@ public class BfVisit<T> {
         int value = partOfGraph.getValue(source.getData());
 
 
-        Collection<DirectNode<T>> neighborNodes = partOfGraph.getNeighborNodes(source, false);
+        Collection<DirectNode<T>> neighborNodes = partOfGraph.getDirectedNeighborNodes(source, false);
 
         for (DirectNode<T> neighbor : neighborNodes) {
             if (blackList.contains(neighbor.getData()))
