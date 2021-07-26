@@ -48,8 +48,10 @@ public class BfVisit<T> {
         Collection<DirectNode<T>> neighborNodes = partOfGraph.getDirectedNeighborNodes(source, false);
 
         for (DirectNode<T> neighbor : neighborNodes) {
+            //Skip ones that already visited
             if (blackList.contains(neighbor.getData()))
                 continue;
+            //If dest -> add to paths
             if(neighbor.getData().equals(dest.getData())){
                 List<T> t = new ArrayList<>();
                 t.add(dest.getData());
@@ -58,6 +60,9 @@ public class BfVisit<T> {
                 continue;
             }
 
+            //Check if has FutureTask on neighbor.
+            //if exists add the FutureTask to futures
+            //else create new future and add to local futures + global future lists
             readWriteLock.writeLock().lock();
             if (visited.containsKey(neighbor)) {
                 futures.add(visited.get(neighbor));
