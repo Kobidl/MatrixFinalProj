@@ -1,4 +1,4 @@
-import javafx.util.Pair;
+
 
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class BfVisit<T> {
 
-    private HashMap<DirectNode<T>, Future<Collection<Pair<List<T>, Integer>>>> visited = new HashMap<>();
+    private HashMap<DirectNode<T>, Future<Collection<Map.Entry<List<T>, Integer>>>> visited = new HashMap<>();
 
     private ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
@@ -27,17 +27,16 @@ public class BfVisit<T> {
      * @param dest
      * @return
      */
-    public Collection<Pair<List<T>, Integer>> getLightestPaths(Traversable<T> partOfGraph, List<T> blackList, DirectNode<T> source, DirectNode<T> dest) {
-
-        Collection<Pair<List<T>, Integer>> paths = new ArrayList<>();
-        Collection<Future<Collection<Pair<List<T>, Integer>>>> futures = new ArrayList<>();
+    public Collection<Map.Entry<List<T>, Integer>> getLightestPaths(Traversable<T> partOfGraph, List<T> blackList, DirectNode<T> source, DirectNode<T> dest) {
+        Collection<Map.Entry<List<T>, Integer>> paths = new ArrayList<>();
+        Collection<Future<Collection<Map.Entry<List<T>, Integer>>>> futures = new ArrayList<>();
         int newPaths = 0;
 
         //if reached to end return path with dest point
         if (source.getData().equals(dest.getData())) {
             List<T> t = new ArrayList<>();
             t.add(source.getData());
-            paths.add(new Pair<>(t, partOfGraph.getValue(dest.getData())));
+            paths.add(new AbstractMap.SimpleEntry<>(t, partOfGraph.getValue(dest.getData())));
             return paths;
         }
 
@@ -55,7 +54,7 @@ public class BfVisit<T> {
                 List<T> t = new ArrayList<>();
                 t.add(dest.getData());
                 t.add(source.getData());
-                paths.add(new Pair<>(t, partOfGraph.getValue(dest.getData())+value));
+                paths.add(new AbstractMap.SimpleEntry<>(t, partOfGraph.getValue(dest.getData())+value));
                 continue;
             }
 
@@ -63,7 +62,7 @@ public class BfVisit<T> {
             if (visited.containsKey(neighbor)) {
                 futures.add(visited.get(neighbor));
             } else {
-                Callable<Collection<Pair<List<T>, Integer>>> taskToHandle = () ->
+                Callable<Collection<Map.Entry<List<T>, Integer>>> taskToHandle = () ->
                 {
                     List<T> newPrev = new ArrayList<>(blackList);
                     return getLightestPaths(partOfGraph, newPrev, neighbor, dest);
@@ -77,14 +76,14 @@ public class BfVisit<T> {
             readWriteLock.writeLock().unlock();
         }
 
-        for (Future<Collection<Pair<List<T>, Integer>>> future : futures) {
+        for (Future<Collection<Map.Entry<List<T>, Integer>>> future : futures) {
             try {
                 //Get all neighbors paths from future
-                Collection<Pair<List<T>, Integer>> pairs = future.get();
-                for (Pair<List<T>, Integer> pair : pairs) {
+                Collection<Map.Entry<List<T>, Integer>> pairs = future.get();
+                for (Map.Entry<List<T>, Integer> pair : pairs) {
                     if (!pair.getKey().contains(source.getData())) {
                         //add the source to path and increase the value
-                        Pair<List<T>, Integer> newPair = new Pair<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
+                        Map.Entry<List<T>, Integer> newPair = new AbstractMap.SimpleEntry<>(new ArrayList<>(pair.getKey()), pair.getValue() + value);
                         newPair.getKey().add(source.getData());
                         paths.add(newPair);
                         newPaths++;
@@ -110,8 +109,8 @@ public class BfVisit<T> {
      * @param paths
      * @return lightest paths includes source
      */
-    private Collection<Pair<List<T>,Integer>> getMinPaths( Collection<Pair<List<T>,Integer>> paths) {
-        OptionalInt minPath = paths.stream().mapToInt(Pair::getValue).min();
+    private Collection<Map.Entry<List<T>,Integer>> getMinPaths( Collection<Map.Entry<List<T>,Integer>> paths) {
+        OptionalInt minPath = paths.stream().mapToInt(Map.Entry::getValue).min();
 
         if (minPath.isPresent()) {
             int min = minPath.getAsInt();

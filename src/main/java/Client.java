@@ -69,7 +69,7 @@ public class Client {
 //        };
                 int[][] source4 = {
                         {100, 300, 100, 100, 500, 100, 100, 500, 100, 100, 500, 100},
-                        {300, 900, 500, 100, 500, 100, 100, 500, 100, 100, 500, 100},
+                        {300, 900, -500, 100, 500, 100, 100, 500, 100, 100, 500, 100},
                         {300, 900, 500, 100, 500, 100, 100, 500, 100, 100, 500, 100},
                         {300, 900, 500, 100, 500, 100, 100, 500, 100, 100, 500, 100},
                         {300, 900, 500, 100, 500, 100, 100, 500, 100, 100, 500, 100},
@@ -85,7 +85,7 @@ public class Client {
         toServer.writeObject("start index");
         toServer.writeObject(new Index(1, 0));
         toServer.writeObject("end index");
-        toServer.writeObject(new Index(1, 2));
+        toServer.writeObject(new Index(1, 3));
 
         toServer.writeObject("getLightestPath");
         Collection<List<Index>> lightestPaths = (Collection<List<Index>>) fromServer.readObject();

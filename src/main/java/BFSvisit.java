@@ -1,11 +1,9 @@
-import javafx.util.Pair;
-
 import java.util.*;
 
 public class BFSvisit<T> {
 
     Stack<Node<T>> workingStack; // stack for discovered nodes
-    Queue<Pair<Node<T>,Integer>> workingQueue;
+    Queue<Map.Entry<Node<T>,Integer>> workingQueue;
     Collection<Collection<T>> allPaths;
     int shortestSteps;
 
@@ -33,13 +31,13 @@ public class BFSvisit<T> {
 
         // Create a queue for BFS
         // Distance of source cell is 0
-        workingQueue.add(new Pair<>(source,0));
+        workingQueue.add(new AbstractMap.SimpleEntry<>(source,0));
 
         // Do a BFS starting from source cell
         while (!workingQueue.isEmpty())
         {
             //Remove first item in queue and save as current
-            Pair<Node<T>,Integer> current = workingQueue.remove();
+            Map.Entry<Node<T>,Integer> current = workingQueue.remove();
             Node<T> pt = current.getKey();
 
             //Finding reachable nodes from current node
@@ -75,7 +73,7 @@ public class BFSvisit<T> {
                 else if (!reachable.equals(pt.getParent()) && (current.getValue() < shortestSteps))
                 {
                     //Adding reachable to working queue and increase steps by 1
-                    workingQueue.add(new Pair<>(reachable,current.getValue() + 1));
+                    workingQueue.add(new AbstractMap.SimpleEntry<>(reachable,current.getValue() + 1));
                 }
             }
         }
